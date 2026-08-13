@@ -53,3 +53,4 @@ h1{max-width:900px;font-size:clamp(53px,6.5vw,92px);line-height:.94;letter-spaci
 .footer{background:#fbf8f2}
 
 @media(max-width:800px){.impactHead,.impactGrid{grid-template-columns:1fr}.impactHead{gap:18px}.impact{padding:46px 0}}
+@media(max-width:680px){h1{font-size:clamp(42px,13vw,49px);overflow-wrap:anywhere}.hero{padding-top:58px}}
