@@ -239,7 +239,8 @@ def product_brief() -> dict:
     }
 
 
-# Vercel serves public/** directly. Local/Docker runs mount the same assets through FastAPI.
+# Vercel serves public/** directly. Local/Docker runs mount the same assets through FastAPI when present.
 if not os.getenv("VERCEL"):
     public_dir = Path(__file__).resolve().parents[1] / "public"
-    app.mount("/", StaticFiles(directory=public_dir, html=True), name="public")
+    if public_dir.is_dir():
+        app.mount("/", StaticFiles(directory=public_dir, html=True), name="public")

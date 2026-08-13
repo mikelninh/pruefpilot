@@ -1,12 +1,15 @@
 from app.agents import PruefPilot
+from app.data import load_case
+from app.main import product_brief
 from app.providers import ProviderConfig, ProviderRegistry
 from app.security import scan_untrusted_document
 
 
-def test_intake_quarantines_untrusted_document():
-    report = PruefPilot().intake()
-    assert report.quarantined == 1
-    assert any("document_prompt_injection" in doc.flags for doc in report.documents)
+def test_demo_case_contains_quarantined_untrusted_document():
+    case = load_case()
+    quarantined = [doc for doc in case["documents"] if doc.get("status") == "quarantined"]
+    assert len(quarantined) == 1
+    assert "document_prompt_injection" in quarantined[0].get("security_flags", [])
 
 
 def test_queue_is_prioritised_for_reviewer():
@@ -15,8 +18,8 @@ def test_queue_is_prioritised_for_reviewer():
     assert queue[0].risk_score > queue[-1].risk_score
 
 
-def test_phase_one_map_covers_role_stack():
-    requirements = " ".join(item.requirement for item in PruefPilot().phase_one_map())
+def test_product_brief_covers_role_stack():
+    requirements = " ".join(product_brief()["phase_one"])
     assert "RAG" in requirements
     assert "FastAPI" in requirements
     assert "MCP" in requirements

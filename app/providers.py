@@ -117,3 +117,25 @@ PROVIDERS: dict[str, Provider] = {
     "mistral": MistralProvider(),
     "local": LocalHTTPProvider(),
 }
+
+
+@dataclass(frozen=True)
+class ProviderConfig:
+    """Small compatibility config used by product tests and local provider selection."""
+
+    provider: str = "openai"
+
+
+class ProviderRegistry:
+    """Resolve a configured provider explicitly; never silently fall back to another model."""
+
+    def __init__(self, config: ProviderConfig | None = None):
+        self.config = config or ProviderConfig()
+
+    def get(self) -> Provider:
+        provider = PROVIDERS.get(self.config.provider)
+        if provider is None:
+            raise ValueError(f"Unknown provider: {self.config.provider}")
+        if not provider.configured():
+            raise ValueError(f"Provider '{self.config.provider}' is not configured")
+        return provider
