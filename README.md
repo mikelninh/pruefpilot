@@ -1,7 +1,7 @@
 # PrüfPilot V5.1 — Case Engine für nachvollziehbare Verwaltungsprozesse
 
-> Unabhängige Bewerbungs-Arbeitsprobe für die AI-Engineer-Rolle bei aconium.  
-> Kein allgemeiner PDF-Chat, sondern ein enger, testbarer Reviewer-Workflow mit drei synthetischen Verwaltungsdomänen.
+> **Public-sector document review prototype:** ein enger, testbarer Reviewer-Workflow mit drei synthetischen Verwaltungsdomänen.  
+> Ursprünglich als unabhängige Bewerbungs-Arbeitsprobe für aconium gebaut; heute als allgemeines Proof-of-Work für nachvollziehbare Document-AI- und Verwaltungsprozesse dokumentiert.
 
 [![Live-App](https://img.shields.io/badge/Live--App-PrüfPilot-007f83)](https://pruefpilot-aconium.vercel.app)
 [![V5 API](https://img.shields.io/badge/FastAPI-V5-a8bf00)](https://pruefpilot-v5-api.vercel.app/api/docs)
