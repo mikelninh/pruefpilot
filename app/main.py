@@ -1,222 +1,92 @@
 from __future__ import annotations
 
+import json
 import os
-import uuid
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .agents import PruefPilot
-from .benchmark import run_benchmark
-from .config import settings
-from .document_ai import ingest_pdf
-from .models import (
-    AskRequest,
-    AskResponse,
-    BenchmarkReport,
-    BenchmarkRunRequest,
-    CaseSummary,
-    CompletenessReport,
-    EvidenceRequest,
-    EvidenceResponse,
-    FeedbackRequest,
-    FeedbackResponse,
-    QueueItem,
-    ReviewMemo,
-    UploadResult,
-)
-from .storage import store
-from .v5_cases import answer as v5_answer
-from .v5_cases import evidence as v5_evidence
-from .v5_cases import get_case as v5_get_case
-from .v5_cases import list_cases as v5_list_cases
-from .v5_cases import memo as v5_memo
+from .document_ai import inspect_document
+from .models import CaseQuestionRequest, CaseQuestionResponse
+from .retrieval import search_sources
 
-app = FastAPI(
-    title="PrüfPilot Document AI",
-    version="5.1.0",
-    description=(
-        "Reusable public-sector case engine with three synthetic domains. "
-        "Grounded RAG, bounded agents, real PDF intake, evaluation and human approval."
-    ),
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
-)
+app = FastAPI(title="PrüfPilot Document AI", version="5.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list(settings.allowed_origins) + ["*"],
+    allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
+
 pilot = PruefPilot()
 
 
-@app.middleware("http")
-async def request_context(request: Request, call_next):
-    request_id = request.headers.get("x-request-id") or f"req_{uuid.uuid4().hex[:12]}"
-    response = await call_next(request)
-    response.headers["x-request-id"] = request_id
-    response.headers["x-pruefpilot-persistence"] = store.mode
-    response.headers["x-content-type-options"] = "nosniff"
-    response.headers["x-frame-options"] = "DENY"
-    response.headers["referrer-policy"] = "strict-origin-when-cross-origin"
-    return response
-
-
-@app.get("/", include_in_schema=False)
-def root() -> RedirectResponse:
-    return RedirectResponse("/index.html", status_code=307)
-
-
-@app.get("/v5", include_in_schema=False)
-def v5_page() -> FileResponse:
-    return FileResponse(Path(__file__).resolve().parent / "v5.html")
+@app.get("/api/health")
+def health() -> dict[str, str]:
+    return {"status": "ok", "version": "5.1.0"}
 
 
 @app.get("/api/v5/cases")
-def v5_cases() -> list[dict]:
-    return v5_list_cases()
+def v5_cases() -> list[dict[str, Any]]:
+    return [item.model_dump() for item in pilot.v5_cases()]
 
 
 @app.get("/api/v5/cases/{case_id}")
-def v5_case(case_id: str) -> dict:
-    case_data = v5_get_case(case_id)
-    if not case_data:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return case_data
+def v5_case(case_id: str) -> dict[str, Any]:
+    case = pilot.v5_case(case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="case_not_found")
+    return case.model_dump()
 
 
-@app.post("/api/v5/cases/{case_id}/ask")
-def v5_ask(case_id: str, request: AskRequest) -> dict:
-    result = v5_answer(case_id, request.question)
-    if not result:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return result
-
-
-@app.post("/api/v5/cases/{case_id}/evidence")
-def v5_check_evidence(case_id: str, request: EvidenceRequest) -> dict:
-    result = v5_evidence(case_id, request.claim)
-    if not result:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return result
-
-
-@app.post("/api/v5/cases/{case_id}/memo")
-def v5_review_memo(case_id: str) -> dict:
-    result = v5_memo(case_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return result
-
-
-@app.get("/api/health")
-def health() -> dict:
-    return {
-        "status": "ok",
-        "service": "pruefpilot",
-        "version": app.version,
-        "mode": settings.app_env,
-        "persistence": store.mode,
-        "llm_providers": {
-            "openai": bool(settings.openai_api_key),
-            "mistral": bool(settings.mistral_api_key),
-            "local": bool(settings.local_model_url),
-        },
-    }
-
-
-@app.get("/api/queue", response_model=list[QueueItem])
-def queue() -> list[QueueItem]:
-    return pilot.queue()
-
-
-@app.get("/api/cases/{case_id}", response_model=CaseSummary)
-def case(case_id: str) -> dict:
-    if case_id != pilot.case["case_id"]:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return pilot.case_summary()
-
-
-@app.post("/api/upload", response_model=UploadResult)
-async def upload_document(
-    file: UploadFile = File(...),
-    case_id: str = Form("GF-2026-014"),
-) -> UploadResult:
-    filename = file.filename or "document.pdf"
-    if not filename.lower().endswith(".pdf") and file.content_type != "application/pdf":
-        raise HTTPException(status_code=415, detail="Only PDF uploads are accepted")
-    content = await file.read(settings.max_upload_bytes + 1)
-    if len(content) > settings.max_upload_bytes:
-        raise HTTPException(status_code=413, detail=f"File exceeds {settings.max_upload_bytes} bytes")
-    if not content.startswith(b"%PDF"):
-        raise HTTPException(status_code=422, detail="The uploaded file is not a valid PDF")
+@app.post("/api/v5/cases/{case_id}/ask", response_model=CaseQuestionResponse)
+def v5_ask(case_id: str, body: CaseQuestionRequest) -> CaseQuestionResponse:
     try:
-        result = ingest_pdf(filename, content)
-    except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"PDF extraction failed: {type(exc).__name__}") from exc
-    store.save_upload(case_id, result.model_dump())
-    return result
+        return pilot.answer_v5_question(case_id, body.question)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="case_not_found") from exc
 
 
-@app.post("/api/cases/{case_id}/ask", response_model=AskResponse)
-def ask(case_id: str, request: AskRequest) -> AskResponse:
-    if case_id != pilot.case["case_id"]:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return pilot.ask(request.question)
+@app.get("/api/cases")
+def cases() -> list[dict[str, Any]]:
+    return [item.model_dump() for item in pilot.queue()]
 
 
-@app.post("/api/cases/{case_id}/completeness", response_model=CompletenessReport)
-def completeness(case_id: str) -> CompletenessReport:
-    if case_id != pilot.case["case_id"]:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return pilot.completeness()
+@app.get("/api/intake")
+def intake() -> dict[str, Any]:
+    return pilot.intake().model_dump()
 
 
-@app.post("/api/cases/{case_id}/evidence", response_model=EvidenceResponse)
-def evidence(case_id: str, request: EvidenceRequest) -> EvidenceResponse:
-    if case_id != pilot.case["case_id"]:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return pilot.evidence_check(request.claim)
+@app.get("/api/phase-one-map")
+def phase_one_map() -> list[dict[str, Any]]:
+    return [item.model_dump() for item in pilot.phase_one_map()]
 
 
-@app.post("/api/cases/{case_id}/review-memo", response_model=ReviewMemo)
-def review_memo(case_id: str) -> ReviewMemo:
-    if case_id != pilot.case["case_id"]:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return pilot.review_memo()
+@app.get("/api/retrieval")
+def retrieval(q: str, limit: int = 5) -> dict[str, Any]:
+    return {"query": q, "results": [item.model_dump() for item in search_sources(q, limit=limit)]}
 
 
-@app.post("/api/feedback", response_model=FeedbackResponse)
-def feedback(request: FeedbackRequest) -> FeedbackResponse:
-    feedback_id, eval_case = store.save_feedback(request.model_dump())
-    return FeedbackResponse(
-        feedback_id=feedback_id,
-        stored=True,
-        persistence_mode=store.mode,
-        eval_case=eval_case,
-    )
+@app.post("/api/document/inspect")
+async def document_inspect(
+    file: UploadFile = File(...),
+    domain: str = Form(default="generic"),
+) -> dict[str, Any]:
+    raw = await file.read()
+    try:
+        report = inspect_document(raw, filename=file.filename or "upload.pdf", domain=domain)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return report.model_dump()
 
 
-@app.get("/api/feedback")
-def list_feedback() -> dict:
-    return {"persistence_mode": store.mode, "items": store.list_feedback()}
-
-
-@app.post("/api/benchmark/run", response_model=BenchmarkReport)
-def benchmark(request: BenchmarkRunRequest) -> BenchmarkReport:
-    report = run_benchmark(request.providers)
-    store.save_benchmark(report.run_id, report.model_dump())
-    return report
-
-
-@app.get("/api/product-brief")
-def product_brief() -> dict:
+@app.get("/api/aconium/fit")
+def aconium_fit() -> dict[str, list[str]]:
     return {
         "company_understanding": [
             "aconium supports public-sector implementation, funding and complex project administration.",
@@ -239,7 +109,10 @@ def product_brief() -> dict:
     }
 
 
-# Vercel serves public/** directly. Local/Docker runs mount the same assets through FastAPI.
+# Vercel serves public/** directly. Local/Docker runs mount the same assets when present.
+# The repository's current V5.1 frontend lives under frontend/v5.1, so API-only tests
+# and installs must not fail just because a legacy root public/ directory is absent.
 if not os.getenv("VERCEL"):
     public_dir = Path(__file__).resolve().parents[1] / "public"
-    app.mount("/", StaticFiles(directory=public_dir, html=True), name="public")
+    if public_dir.is_dir():
+        app.mount("/", StaticFiles(directory=public_dir, html=True), name="public")
