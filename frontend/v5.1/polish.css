@@ -22,11 +22,15 @@ body{background:#fbf8f2}
 .brand{font-size:21px;letter-spacing:-.035em}
 .mark .a{background:var(--teal);border-radius:7px}.mark .b{background:var(--lime);border-radius:7px}
 .btn{border-radius:10px}.btn.primary{background:var(--teal);border-color:var(--teal)}
-.hero{padding:78px 0 62px;background:radial-gradient(circle at 90% 8%,rgba(199,161,91,.18),transparent 28rem),linear-gradient(180deg,#fbf8f2,#f7f4ed)}
+.hero{padding:66px 0 56px;background:radial-gradient(circle at 90% 8%,rgba(199,161,91,.18),transparent 28rem),linear-gradient(180deg,#fbf8f2,#f7f4ed)}
 .hero:before{opacity:.22;background-size:54px 54px}
-h1{max-width:900px;font-size:clamp(53px,6.5vw,92px);line-height:.94;letter-spacing:-.065em}
+h1{max-width:880px;font-size:clamp(51px,6vw,82px);line-height:.95;letter-spacing:-.062em}
 .accent{color:var(--teal)}
 .lead{max-width:790px;line-height:1.58;color:#4c554e}
+.heroPrimary{min-width:238px}
+.proofRow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:18px;max-width:910px}
+.proofRow span{padding:10px 11px;border:1px solid rgba(95,113,92,.2);border-radius:12px;background:rgba(255,253,250,.72);backdrop-filter:blur(10px)}
+.proofRow b,.proofRow small{display:block}.proofRow b{font-size:11px;line-height:1.15;color:var(--ink)}.proofRow small{margin-top:3px;font:8px var(--mono);color:var(--muted);line-height:1.25}
 .heroPanel{border-radius:22px;background:rgba(255,253,250,.84)}
 .heroPanel:before{background:var(--teal);opacity:.85;border-radius:15px}.heroPanel:after{background:var(--lime);opacity:.72;border-radius:15px}
 .miniFlow{border-radius:12px;overflow:hidden}
@@ -52,5 +56,6 @@ h1{max-width:900px;font-size:clamp(53px,6.5vw,92px);line-height:.94;letter-spaci
 .faqSection{background:#fffdfa}
 .footer{background:#fbf8f2}
 
-@media(max-width:800px){.impactHead,.impactGrid{grid-template-columns:1fr}.impactHead{gap:18px}.impact{padding:46px 0}}
-@media(max-width:680px){h1{font-size:clamp(42px,13vw,49px);overflow-wrap:anywhere}.hero{padding-top:58px}}
+@media(max-width:1080px){.proofRow{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.impactHead,.impactGrid{grid-template-columns:1fr}.impactHead{gap:18px}.impact{padding:46px 0}.proofRow{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){h1{font-size:clamp(42px,13vw,49px);overflow-wrap:anywhere}.hero{padding-top:58px}.proofRow{grid-template-columns:1fr 1fr}.proofRow span:last-child{grid-column:1/-1}.heroPrimary{min-width:0}}
