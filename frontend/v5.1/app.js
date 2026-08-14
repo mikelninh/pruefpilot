@@ -215,6 +215,7 @@ async function ask() {
   if (question.length < 3) return;
   button.disabled = true;
   button.textContent = "Prüfe…";
+
   let payload;
   try {
     payload = await getJSON(`${API}/api/v5/cases/${currentId}/ask`, {
@@ -225,25 +226,42 @@ async function ask() {
   } catch {
     payload = {
       answer: `${current.confirmed.join(" ")} ${current.open.join(" ")} Nächste Aktion: ${current.next_action}`,
-      grounded: true,
-      uncertainty: "medium",
+      grounded: false,
+      fallback: true,
+      uncertainty: "demo",
       citations: [],
-      trace: [{ tool: "browser_fallback", detail: "Transparenter lokaler Fallback", duration_ms: 0 }],
+      trace: [{ tool: "static_demo_fallback", detail: "Live-Backend nicht erreichbar; synthetische Falldaten lokal angezeigt", duration_ms: 0 }],
       tech_mode: current.tech.mode,
     };
   }
+
+  let label;
+  let heading;
+  if (payload.fallback) {
+    label = "STATIC DEMO FALLBACK · NICHT LIVE VERIFIZIERT";
+    heading = "Synthetischer Demo-Fall";
+  } else if (payload.grounded) {
+    label = `QUELLENBASIERTE ANTWORT · ${escapeHtml(payload.uncertainty || "")}`;
+    heading = "Ergebnis für den ausgewählten Fall";
+  } else {
+    label = `GROUNDING GUARD · ${escapeHtml(payload.uncertainty || "")}`;
+    heading = "Keine belastbare Grundlage";
+  }
+
   $("#answer").innerHTML = `
-    <small>${payload.grounded ? "QUELLENBASIERTE ANTWORT" : "GROUNDING GUARD"} · ${escapeHtml(payload.uncertainty || "")}</small>
-    <h4>${payload.grounded ? "Ergebnis für den ausgewählten Fall" : "Keine belastbare Grundlage"}</h4>
+    <small>${label}</small>
+    <h4>${heading}</h4>
     <p>${escapeHtml(payload.answer)}</p>
     ${(payload.citations || []).map((citation) => `<a class="citation" href="${escapeHtml(citation.source_url)}" target="_blank"><b>${escapeHtml(citation.title)} · S. ${escapeHtml(citation.page)}</b><span>${escapeHtml(citation.version)} · ${escapeHtml(citation.section)}</span></a>`).join("")}
   `;
+
   if (mode === "technik") {
     $("#trace").innerHTML = `
-      <div class="traceMeta"><div><small>CASE</small>${escapeHtml(current.internal_id)}</div><div><small>MODE</small>${escapeHtml(payload.tech_mode || current.tech.mode)}</div><div><small>BOUNDARY</small>human approval required</div></div>
+      <div class="traceMeta"><div><small>CASE</small>${escapeHtml(current.internal_id)}</div><div><small>MODE</small>${escapeHtml(payload.tech_mode || current.tech.mode)}</div><div><small>BOUNDARY</small>${payload.fallback ? "static demo only" : "human approval required"}</div></div>
       ${(payload.trace || []).map((step) => `<div class="traceRow"><b>${escapeHtml(step.tool)}</b><span>${escapeHtml(step.detail)} · ${escapeHtml(step.duration_ms || 0)} ms</span></div>`).join("")}
     `;
   }
+
   button.disabled = false;
   button.textContent = "Antwort prüfen";
 }
