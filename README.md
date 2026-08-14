@@ -4,7 +4,7 @@
 
 PrüfPilot turns documents, versioned rules and evidence gaps into a clear next step for a human reviewer — without pretending the model should make the final decision.
 
-**[Try the live demo →](https://pruefpilot-aconium.vercel.app)** · **[OpenAPI](https://pruefpilot-v5-api.vercel.app/api/docs)**
+**[Try the live demo →](https://mikelninh.github.io/pruefpilot/)** · **[OpenAPI](https://pruefpilot-v5-api.vercel.app/api/docs)**
 
 ## What you can try
 
