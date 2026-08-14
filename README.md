@@ -1,14 +1,14 @@
-# PrüfPilot
+# PrüfPilot 📄
 
 **Document AI for reviewable public-sector workflows.**
 
 PrüfPilot turns documents, versioned rules and evidence gaps into a clear next step for a human reviewer — without pretending the model should make the final decision.
 
-**[Try the live demo](https://pruefpilot-aconium.vercel.app)** · **[OpenAPI](https://pruefpilot-v5-api.vercel.app/api/docs)**
+**[Try the live demo →](https://pruefpilot-aconium.vercel.app)** · **[OpenAPI](https://pruefpilot-v5-api.vercel.app/api/docs)**
 
 ## What you can try
 
-Three synthetic cases show the same controlled case engine across different administrative workflows:
+Three synthetic cases run through the same controlled case engine:
 
 - **Infrastructure funding** — required documents, amount checks, evidence states and prompt-injection quarantine
 - **Housing benefit** — completeness, inconsistencies and targeted requests for missing evidence
@@ -16,7 +16,7 @@ Three synthetic cases show the same controlled case engine across different admi
 
 All people, documents and amounts in the public demo are synthetic.
 
-## The core idea
+## The workflow
 
 ```text
 documents
@@ -36,7 +36,19 @@ human approval
 
 The model may extract, retrieve and prepare. **Authority stays outside the model.**
 
-## What is actually implemented
+## Proof at a glance
+
+| Signal | Current repository check |
+| --- | ---: |
+| Unit + API tests | **22 / 22** |
+| Retrieval evals | **10 / 10** |
+| Real PDF intake | **implemented** |
+| Prompt-injection detection | **implemented** |
+| Human-approval boundary | **tested** |
+
+These are engineering evaluations, not claims of production accuracy.
+
+## What is implemented
 
 - FastAPI document intake and typed contracts
 - PDF extraction with SHA-256 fingerprints
@@ -46,12 +58,11 @@ The model may extract, retrieve and prepare. **Authority stays outside the model
 - prompt-injection detection for untrusted documents
 - bounded agent/tool workflows with visible traces
 - review memos and explicit human-approval boundaries
-- three reusable domain packs
-- automated API, boundary and retrieval tests
+- reusable domain packs
 
 ## Architecture
 
-PrüfPilot uses a shared **Case Engine + Domain Packs** rather than building one giant general-purpose agent.
+PrüfPilot uses a shared **Case Engine + Domain Packs** rather than one giant general-purpose agent.
 
 ```text
 Case Engine
@@ -67,24 +78,9 @@ Case Engine
 
 A domain pack can define schemas, required documents, versioned rules, deterministic checks, output templates, permissions and evaluation cases.
 
-## Proof
-
-Current repository checks cover:
-
-- **22/22** unit and API tests
-- **10/10** retrieval evaluation cases
-- real PDF upload
-- document classification and amount extraction
-- grounding guard
-- prompt-injection detection
-- evidence checks
-- human-approval boundaries
-
-These are engineering evaluations, not claims of production accuracy.
-
 ## Stack
 
-`Python · FastAPI · Pydantic · pypdf · React · TypeScript · RAG · structured outputs · evals · human-in-the-loop`
+**Python · FastAPI · Pydantic · pypdf · React · TypeScript · RAG · structured outputs · evals · human-in-the-loop**
 
 ## Run locally
 
@@ -96,12 +92,12 @@ pytest -q
 uvicorn app.main:app --reload
 ```
 
-## Boundaries
+## Boundary
 
-PrüfPilot is a working prototype, not a production government system. A real deployment would still require stronger identity and access controls, persistence, observability, retention/deletion workflows, integrations, external security review and domain validation with qualified reviewers.
+PrüfPilot is a working prototype, not a production government system. A real deployment would still require stronger identity and access controls, persistence, observability, retention/deletion workflows, integrations, security review and validation with qualified reviewers.
 
 **No autonomous legal, funding or benefit decisions. Human review remains required.**
 
 ---
 
-Built by [Michael Ninh](https://github.com/mikelninh) in Berlin.
+Built by [Michael Ninh](https://mikelninh.github.io/) in Berlin.
