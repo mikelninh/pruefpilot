@@ -57,20 +57,26 @@ def fingerprint_actor(principal: Principal | None) -> str | None:
     return hashlib.sha256(value).hexdigest()[:16]
 
 
-def production_readiness(*, app_env: str, store_mode: str, allowed_origins: tuple[str, ...]) -> dict[str, Any]:
+def production_readiness(
+    *,
+    app_env: str,
+    store_mode: str,
+    allowed_origins: tuple[str, ...],
+    tenant_scoped_persistence: bool,
+) -> dict[str, Any]:
     principals = load_api_principals()
     production = app_env.strip().lower() == "production"
     gates = {
         "production_mode": production,
         "identity_and_access": bool(principals),
         "tenant_principal_binding": bool(principals),
-        "durable_persistence": store_mode not in {"serverless-ephemeral+browser"} and not store_mode.startswith("memory"),
+        "durable_persistence": store_mode in {"postgres-durable", "external-durable"},
         "strict_cors": "*" not in allowed_origins,
         "observability_configured": _bool_env("PRUEFPILOT_OBSERVABILITY_ENABLED"),
         "retention_deletion_configured": bool(os.getenv("PRUEFPILOT_RETENTION_DAYS")),
         "backup_restore_evidence": _bool_env("PRUEFPILOT_BACKUP_RESTORE_TESTED"),
         "rollback_runbook": _bool_env("PRUEFPILOT_ROLLBACK_READY"),
-        "tenant_scoped_persistence": _bool_env("PRUEFPILOT_TENANT_SCOPED_PERSISTENCE"),
+        "tenant_scoped_persistence": bool(tenant_scoped_persistence),
     }
     required = [
         "identity_and_access",
