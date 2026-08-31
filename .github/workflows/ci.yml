@@ -5,12 +5,48 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pruefpilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d pruefpilot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PRUEFPILOT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/pruefpilot
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
-      - run: pip install -e ".[dev]"
+      - run: pip install -e ".[dev,postgres]"
       - run: pytest -q
       - run: python evals/run_evals.py
+      - name: Prove fail-closed production readiness can go green on durable infrastructure
+        env:
+          APP_ENV: production
+          PRUEFPILOT_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/pruefpilot
+          PRUEFPILOT_API_PRINCIPALS: '{"ci-key":{"tenant_id":"tenant-ci","actor_id":"ci","role":"admin"}}'
+          ALLOWED_ORIGINS: https://example.com
+          PRUEFPILOT_OBSERVABILITY_ENABLED: "true"
+          PRUEFPILOT_RETENTION_DAYS: "30"
+          PRUEFPILOT_BACKUP_RESTORE_TESTED: "true"
+          PRUEFPILOT_ROLLBACK_READY: "true"
+        run: |
+          python - <<'PY'
+          from app.main import _readiness
+          result = _readiness()
+          assert result["ready"] is True, result
+          assert result["stage"] == "ENGINEERING_PRODUCTION_READY", result
+          assert result["gates"]["durable_persistence"] is True
+          assert result["gates"]["durable_object_storage"] is True
+          assert result["gates"]["tenant_scoped_persistence"] is True
+          print(result)
+          PY
