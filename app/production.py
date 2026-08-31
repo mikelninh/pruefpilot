@@ -28,7 +28,6 @@ def load_api_principals(raw: str | None = None) -> dict[str, Principal]:
         payload: dict[str, Any] = json.loads(raw or "{}")
     except json.JSONDecodeError as exc:
         raise RuntimeError("PRUEFPILOT_API_PRINCIPALS must be valid JSON") from exc
-
     principals: dict[str, Principal] = {}
     for api_key, item in payload.items():
         if not isinstance(api_key, str) or not api_key or not isinstance(item, dict):
@@ -75,6 +74,8 @@ def production_readiness(
         "tenant_principal_binding": bool(principals),
         "durable_persistence": store_mode in {"postgres-durable", "external-durable"},
         "durable_object_storage": bool(object_store_durable),
+        "durable_queue": bool(storage_health.get("queue_durable")),
+        "durable_audit": bool(storage_health.get("audit_durable")),
         "storage_health": bool(storage_health.get("ok")),
         "strict_cors": "*" not in allowed_origins,
         "observability_configured": _bool_env("PRUEFPILOT_OBSERVABILITY_ENABLED"),
@@ -85,8 +86,8 @@ def production_readiness(
     }
     required = [
         "identity_and_access", "tenant_principal_binding", "durable_persistence", "durable_object_storage",
-        "storage_health", "strict_cors", "observability_configured", "retention_deletion_configured",
-        "backup_restore_evidence", "rollback_runbook", "tenant_scoped_persistence",
+        "durable_queue", "durable_audit", "storage_health", "strict_cors", "observability_configured",
+        "retention_deletion_configured", "backup_restore_evidence", "rollback_runbook", "tenant_scoped_persistence",
     ]
     missing = [name for name in required if not gates[name]]
     return {
