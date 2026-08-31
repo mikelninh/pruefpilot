@@ -25,11 +25,14 @@ def test_local_sqlite_does_not_masquerade_as_production_durable(monkeypatch):
     configured_env(monkeypatch)
     result = production_readiness(
         app_env="production", store_mode="sqlite-durable", allowed_origins=("https://review.example",),
-        tenant_scoped_persistence=True, object_store_durable=False, storage_health={"ok": True},
+        tenant_scoped_persistence=True, object_store_durable=False,
+        storage_health={"ok": True, "queue_durable": False, "audit_durable": False},
     )
     assert result["ready"] is False
     assert result["gates"]["durable_persistence"] is False
     assert result["gates"]["durable_object_storage"] is False
+    assert result["gates"]["durable_queue"] is False
+    assert result["gates"]["durable_audit"] is False
     assert "durable_persistence" in result["missing"]
 
 
@@ -37,7 +40,8 @@ def test_readiness_fails_closed_on_wildcard_cors(monkeypatch):
     configured_env(monkeypatch)
     result = production_readiness(
         app_env="production", store_mode="postgres-durable", allowed_origins=("*",),
-        tenant_scoped_persistence=True, object_store_durable=True, storage_health={"ok": True},
+        tenant_scoped_persistence=True, object_store_durable=True,
+        storage_health={"ok": True, "queue_durable": True, "audit_durable": True},
     )
     assert result["ready"] is False
     assert result["gates"]["strict_cors"] is False
@@ -60,7 +64,10 @@ def test_production_can_only_be_engineering_ready_when_every_gate_is_explicit(mo
     result = production_readiness(
         app_env="production", store_mode="postgres-durable", allowed_origins=("https://review.example",),
         tenant_scoped_persistence=True, object_store_durable=True,
-        storage_health={"ok": True, "mode": "postgres-durable", "tenant_scoped": True, "object_store_durable": True},
+        storage_health={
+            "ok": True, "mode": "postgres-durable", "tenant_scoped": True,
+            "object_store_durable": True, "queue_durable": True, "audit_durable": True,
+        },
     )
     assert result["ready"] is True
     assert result["stage"] == "ENGINEERING_PRODUCTION_READY"
