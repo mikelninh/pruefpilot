@@ -36,15 +36,52 @@ human approval
 
 The model may extract, retrieve and prepare. **Authority stays outside the model.**
 
+## Production Platform v1 reference implementation
+
+PrüfPilot is the first concrete product wired to the shared Digital Worker Factory production contract.
+
+```text
+API principal
+  ↓ tenant + actor + role
+strict production CORS
+  ↓
+Postgres 17
+  ├─ tenant-scoped case/reviewer state
+  ├─ original PDF bytes + SHA-256
+  └─ idempotency keys
+  ↓
+health + /api/ready
+  ↓
+retention / tenant deletion
+```
+
+Implemented now:
+
+- production API principal → tenant/actor/role binding;
+- cross-tenant request blocking;
+- durable Postgres backend selected by `PRUEFPILOT_DATABASE_URL`;
+- original uploaded PDF bytes persisted tenant-scoped in Postgres BYTEA in v1;
+- production uploads require `x-idempotency-key` and replay the recorded result instead of creating a duplicate write;
+- tenant-scoped reviewer feedback, benchmarks and document state;
+- admin/owner tenant-data deletion endpoint;
+- storage health surfaced in `/api/health`;
+- `/api/ready` fails closed until durable persistence/object storage, tenant isolation, strict CORS, observability, retention, backup/restore evidence and rollback are all configured;
+- CI boots a real Postgres 17 service and exercises the production storage path.
+
+`ENGINEERING_PRODUCTION_READY` is an engineering release state only. It does **not** mean qualified public-sector reviewers, external security teams or target Fachverfahren have accepted the system.
+
 ## Proof at a glance
 
 | Signal | Current repository check |
 | --- | ---: |
-| Unit + API tests | **22 / 22** |
-| Retrieval evals | **10 / 10** |
+| Unit + API tests | automated in CI |
+| Retrieval evals | automated in CI |
 | Real PDF intake | **implemented** |
 | Prompt-injection detection | **implemented** |
 | Human-approval boundary | **tested** |
+| Tenant-scoped Postgres + PDF blob storage | **integration-tested in CI** |
+| Idempotent production upload | **implemented** |
+| Production readiness | **fail-closed** |
 
 These are engineering evaluations, not claims of production accuracy.
 
@@ -59,6 +96,10 @@ These are engineering evaluations, not claims of production accuracy.
 - bounded agent/tool workflows with visible traces
 - review memos and explicit human-approval boundaries
 - reusable domain packs
+- controlled-production identity/tenant boundary
+- durable Postgres production backend
+- idempotent upload writes
+- tenant deletion and readiness gates
 
 ## Architecture
 
@@ -78,10 +119,6 @@ Case Engine
 
 A domain pack can define schemas, required documents, versioned rules, deterministic checks, output templates, permissions and evaluation cases.
 
-## Stack
-
-**Python · FastAPI · Pydantic · pypdf · React · TypeScript · RAG · structured outputs · evals · human-in-the-loop**
-
 ## Run locally
 
 ```bash
@@ -92,9 +129,24 @@ pytest -q
 uvicorn app.main:app --reload
 ```
 
+For the Postgres backend:
+
+```bash
+pip install -e ".[dev,postgres]"
+export PRUEFPILOT_DATABASE_URL='postgresql://...'
+```
+
 ## Boundary
 
-PrüfPilot is a working prototype, not a production government system. A real deployment would still require stronger identity and access controls, persistence, observability, retention/deletion workflows, integrations, security review and validation with qualified reviewers.
+PrüfPilot is now a **controlled production engineering candidate**, not a production government system.
+
+Still external/unproven:
+
+- qualified-reviewer accuracy on representative real cases;
+- target DMS/Fachverfahren integration reliability;
+- deployment-specific external security/privacy acceptance;
+- measured operating SLOs and a real backup/restore drill;
+- formal administrative authority.
 
 **No autonomous legal, funding or benefit decisions. Human review remains required.**
 
