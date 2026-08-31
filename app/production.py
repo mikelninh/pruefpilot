@@ -63,14 +63,19 @@ def production_readiness(
     store_mode: str,
     allowed_origins: tuple[str, ...],
     tenant_scoped_persistence: bool,
+    object_store_durable: bool = False,
+    storage_health: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     principals = load_api_principals()
     production = app_env.strip().lower() == "production"
+    storage_health = storage_health or {"ok": False}
     gates = {
         "production_mode": production,
         "identity_and_access": bool(principals),
         "tenant_principal_binding": bool(principals),
         "durable_persistence": store_mode in {"postgres-durable", "external-durable"},
+        "durable_object_storage": bool(object_store_durable),
+        "storage_health": bool(storage_health.get("ok")),
         "strict_cors": "*" not in allowed_origins,
         "observability_configured": _bool_env("PRUEFPILOT_OBSERVABILITY_ENABLED"),
         "retention_deletion_configured": bool(os.getenv("PRUEFPILOT_RETENTION_DAYS")),
@@ -79,22 +84,17 @@ def production_readiness(
         "tenant_scoped_persistence": bool(tenant_scoped_persistence),
     }
     required = [
-        "identity_and_access",
-        "tenant_principal_binding",
-        "durable_persistence",
-        "strict_cors",
-        "observability_configured",
-        "retention_deletion_configured",
-        "backup_restore_evidence",
-        "rollback_runbook",
-        "tenant_scoped_persistence",
+        "identity_and_access", "tenant_principal_binding", "durable_persistence", "durable_object_storage",
+        "storage_health", "strict_cors", "observability_configured", "retention_deletion_configured",
+        "backup_restore_evidence", "rollback_runbook", "tenant_scoped_persistence",
     ]
     missing = [name for name in required if not gates[name]]
     return {
         "ready": production and not missing,
-        "stage": "CONTROLLED_PRODUCTION_CANDIDATE" if production and missing else "ENGINEERING_READY" if production else "DEMO_OR_PILOT",
+        "stage": "ENGINEERING_PRODUCTION_READY" if production and not missing else "CONTROLLED_PRODUCTION_CANDIDATE" if production else "DEMO_OR_PILOT",
         "gates": gates,
         "missing": missing,
+        "storage": storage_health,
         "truth_boundary": (
             "Engineering readiness does not prove reviewer accuracy, legal/administrative authority, "
             "security acceptance or production integration reliability."
