@@ -80,7 +80,10 @@ class SQLiteStore:
         try:
             with self._connect() as conn:
                 ok = conn.execute("SELECT 1").fetchone()[0] == 1
-            return {"ok": ok, "mode": self.mode, "tenant_scoped": True, "object_store_durable": False}
+            return {
+                "ok": ok, "mode": self.mode, "tenant_scoped": True, "object_store_durable": False,
+                "queue_durable": False, "audit_durable": False,
+            }
         except Exception as exc:
             return {"ok": False, "mode": self.mode, "error": type(exc).__name__}
 
@@ -180,8 +183,8 @@ class SQLiteStore:
 def build_store():
     database_url = os.getenv("PRUEFPILOT_DATABASE_URL", "").strip()
     if database_url:
-        from .postgres_store import PostgresStore
-        return PostgresStore(database_url)
+        from .production_postgres_store import ProductionPostgresStore
+        return ProductionPostgresStore(database_url)
     return SQLiteStore()
 
 

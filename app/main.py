@@ -17,6 +17,7 @@ from .models import (
     AskRequest, AskResponse, BenchmarkReport, BenchmarkRunRequest, CaseSummary, CompletenessReport,
     EvidenceRequest, EvidenceResponse, FeedbackRequest, FeedbackResponse, QueueItem, ReviewMemo, UploadResult,
 )
+from .ops_api import router as ops_router
 from .production import authenticate_api_key, fingerprint_actor, load_api_principals, production_readiness
 from .storage import store
 from .v5_cases import answer as v5_answer
@@ -26,8 +27,8 @@ from .v5_cases import list_cases as v5_list_cases
 from .v5_cases import memo as v5_memo
 
 app = FastAPI(
-    title="PrüfPilot Document AI", version="5.3.0",
-    description="Reusable public-sector case engine with grounded RAG, bounded agents, durable production storage options and human approval.",
+    title="PrüfPilot Document AI", version="5.4.0",
+    description="Reusable public-sector case engine with grounded RAG, bounded agents, durable production operations and human approval.",
     docs_url="/api/docs", redoc_url="/api/redoc", openapi_url="/api/openapi.json",
 )
 production_mode = settings.app_env.strip().lower() == "production"
@@ -40,6 +41,7 @@ app.add_middleware(
     allow_headers=["content-type", "x-api-key", "x-request-id", "x-tenant-id", "x-idempotency-key"],
 )
 pilot = PruefPilot()
+app.include_router(ops_router)
 PUBLIC_API_PATHS = {"/api/health", "/api/ready", "/api/docs", "/api/redoc", "/api/openapi.json"}
 
 
@@ -52,9 +54,20 @@ def _principal(request: Request):
     return getattr(request.state, "principal", None)
 
 
+def _append_audit(request: Request, event_type: str, payload: dict | None = None) -> None:
+    principal = _principal(request)
+    if not principal or not hasattr(store, "append_audit"):
+        return
+    store.append_audit(
+        tenant_id=principal.tenant_id, actor_id=principal.actor_id, role=principal.role,
+        request_id=getattr(request.state, "request_id", None), event_type=event_type, payload=payload or {},
+    )
+
+
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request_id = request.headers.get("x-request-id") or f"req_{uuid.uuid4().hex[:12]}"
+    request.state.request_id = request_id
     principal = None
     if production_mode and request.url.path.startswith("/api/") and request.url.path not in PUBLIC_API_PATHS:
         principal = authenticate_api_key(request.headers.get("x-api-key"), production_principals)
@@ -89,11 +102,9 @@ async def request_context(request: Request, call_next):
 def root() -> RedirectResponse:
     return RedirectResponse("/index.html", status_code=307)
 
-
 @app.get("/v5", include_in_schema=False)
 def v5_page() -> FileResponse:
     return FileResponse(Path(__file__).resolve().parent / "v5.html")
-
 
 @app.get("/api/v5/cases")
 def v5_cases() -> list[dict]: return v5_list_cases()
@@ -130,7 +141,6 @@ def _readiness() -> dict:
         object_store_durable=getattr(store, "object_store_durable", False), storage_health=store.health(),
     )
 
-
 @app.get("/api/health")
 def health() -> dict:
     readiness = _readiness()
@@ -153,7 +163,6 @@ def queue() -> list[QueueItem]: return pilot.queue()
 def case(case_id: str) -> dict:
     if case_id != pilot.case["case_id"]: raise HTTPException(status_code=404, detail="Case not found")
     return pilot.case_summary()
-
 
 @app.post("/api/upload", response_model=UploadResult)
 async def upload_document(request: Request, file: UploadFile = File(...), case_id: str = Form("GF-2026-014")) -> UploadResult:
@@ -182,8 +191,8 @@ async def upload_document(request: Request, file: UploadFile = File(...), case_i
     store.save_upload(case_id, result.model_dump(), tenant_id=tenant_id, content=content)
     if idem_key:
         store.complete_idempotency(tenant_id=tenant_id, operation="upload", key=idem_key, response=result.model_dump())
+    _append_audit(request, "document.uploaded", {"case_id": case_id, "document_id": result.document_id, "sha256": result.sha256})
     return result
-
 
 @app.post("/api/cases/{case_id}/ask", response_model=AskResponse)
 def ask(case_id: str, request: AskRequest) -> AskResponse:
@@ -208,6 +217,7 @@ def review_memo(case_id: str) -> ReviewMemo:
 @app.post("/api/feedback", response_model=FeedbackResponse)
 def feedback(payload: FeedbackRequest, request: Request) -> FeedbackResponse:
     feedback_id, eval_case = store.save_feedback(payload.model_dump(), tenant_id=_tenant_id(request))
+    _append_audit(request, "review.feedback_saved", {"feedback_id": feedback_id, "case_id": payload.case_id})
     return FeedbackResponse(feedback_id=feedback_id, stored=True, persistence_mode=store.mode, eval_case=eval_case)
 
 @app.get("/api/feedback")
@@ -218,6 +228,7 @@ def list_feedback(request: Request) -> dict:
 def benchmark(payload: BenchmarkRunRequest, request: Request) -> BenchmarkReport:
     report = run_benchmark(payload.providers)
     store.save_benchmark(report.run_id, report.model_dump(), tenant_id=_tenant_id(request))
+    _append_audit(request, "benchmark.completed", {"run_id": report.run_id})
     return report
 
 @app.delete("/api/tenants/me/data")
@@ -226,7 +237,8 @@ def delete_current_tenant_data(request: Request) -> dict:
     if production_mode and (not principal or principal.role not in {"admin", "owner"}):
         raise HTTPException(status_code=403, detail="Admin or owner role required")
     tenant_id = _tenant_id(request)
-    return {"tenant_id": tenant_id, "deleted": store.delete_tenant(tenant_id), "status": "deleted"}
+    deleted = store.delete_tenant(tenant_id)
+    return {"tenant_id": tenant_id, "deleted": deleted, "status": "deleted"}
 
 @app.get("/api/product-brief")
 def product_brief() -> dict:
@@ -244,16 +256,11 @@ def product_brief() -> dict:
         ],
         "production_v1": [
             "tenant-bound production API principals", "durable Postgres metadata + original PDF BYTEA storage",
-            "idempotent upload writes", "tenant-scoped deletion", "storage health + fail-closed readiness",
+            "durable tenant-scoped audit", "durable queue + bounded retry/dead-letter", "idempotent writes",
+            "tenant-scoped deletion + retention", "backup/export + restore drill semantics", "storage health + fail-closed readiness",
         ],
-        "production_next": [
-            "DMS/funding-system adapters", "measured SLOs + restore drill evidence",
-            "qualified reviewer + external security validation",
-        ],
-        "external_next": [
-            "DMS/funding-system adapters", "measured SLOs + restore drill evidence",
-            "qualified reviewer + external security validation",
-        ],
+        "production_next": ["DMS/funding-system adapters", "measured live SLOs", "qualified reviewer + external security validation"],
+        "external_next": ["DMS/funding-system adapters", "measured live SLOs", "qualified reviewer + external security validation"],
     }
 
 if not os.getenv("VERCEL"):
