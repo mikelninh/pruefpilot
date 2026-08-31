@@ -27,7 +27,8 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev,postgres]"
-      - run: pytest -q
+      - name: Run unit + Postgres operations + backup/restore tests
+        run: pytest -q
       - run: python evals/run_evals.py
       - name: Prove fail-closed production readiness can go green on durable infrastructure
         env:
@@ -45,8 +46,10 @@ jobs:
           result = _readiness()
           assert result["ready"] is True, result
           assert result["stage"] == "ENGINEERING_PRODUCTION_READY", result
-          assert result["gates"]["durable_persistence"] is True
-          assert result["gates"]["durable_object_storage"] is True
-          assert result["gates"]["tenant_scoped_persistence"] is True
+          for gate in (
+              "durable_persistence", "durable_object_storage", "durable_queue", "durable_audit",
+              "tenant_scoped_persistence", "backup_restore_evidence", "retention_deletion_configured",
+          ):
+              assert result["gates"][gate] is True, (gate, result)
           print(result)
           PY
