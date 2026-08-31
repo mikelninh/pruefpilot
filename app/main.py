@@ -231,11 +231,29 @@ def delete_current_tenant_data(request: Request) -> dict:
 @app.get("/api/product-brief")
 def product_brief() -> dict:
     return {
+        "company_understanding": [
+            "aconium supports public-sector implementation, funding and complex project administration.",
+            "The product must fit real reviewer workflows and existing specialist systems.",
+            "Traceability, data governance and human responsibility matter as much as model quality.",
+        ],
+        "phase_one": [
+            "One domain and one reviewer workflow first.",
+            "FastAPI and typed tools as stable contracts.",
+            "Grounded RAG, bounded agents, MCP and evaluation gates.",
+            "Measure reviewer correction rate before scaling models or domains.",
+        ],
         "production_v1": [
             "tenant-bound production API principals", "durable Postgres metadata + original PDF BYTEA storage",
             "idempotent upload writes", "tenant-scoped deletion", "storage health + fail-closed readiness",
         ],
-        "external_next": ["DMS/funding-system adapters", "measured SLOs + restore drill evidence", "qualified reviewer + external security validation"],
+        "production_next": [
+            "DMS/funding-system adapters", "measured SLOs + restore drill evidence",
+            "qualified reviewer + external security validation",
+        ],
+        "external_next": [
+            "DMS/funding-system adapters", "measured SLOs + restore drill evidence",
+            "qualified reviewer + external security validation",
+        ],
     }
 
 if not os.getenv("VERCEL"):
