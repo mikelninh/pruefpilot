@@ -107,6 +107,11 @@ class SQLiteStore:
                     (tenant_id, payload["document_id"], digest, content, "application/pdf", now),
                 )
 
+    def get_upload(self, document_id: str, *, tenant_id: str = "demo") -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT payload_json FROM uploads WHERE tenant_id=? AND document_id=?", (tenant_id, document_id)).fetchone()
+        return json.loads(row[0]) if row else None
+
     def get_blob(self, document_id: str, *, tenant_id: str = "demo") -> bytes | None:
         with self._connect() as conn:
             row = conn.execute("SELECT content FROM document_blobs WHERE tenant_id=? AND document_id=?", (tenant_id, document_id)).fetchone()
@@ -143,7 +148,7 @@ class SQLiteStore:
         with self._lock, self._connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO benchmark_runs (run_id, tenant_id, payload_json, created_at) VALUES (?, ?, ?, ?)",
-                (run_id, tenant_id, json.dumps(payload, ensure_ascii=False), now),
+                (tenant_id, run_id, json.dumps(payload, ensure_ascii=False), now),
             )
 
     def reserve_idempotency(self, *, tenant_id: str, operation: str, key: str) -> dict[str, Any]:
