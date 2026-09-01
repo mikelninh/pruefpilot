@@ -142,3 +142,7 @@ def restore_tenant(snapshot: dict[str, Any], request: Request) -> dict[str, Any]
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _audit(request, "backup.restored", {"restored": restored, "schema": snapshot.get("schema")})
     return {"tenant_id": principal.tenant_id, "restored": restored}
+
+
+from .findings_api import router as findings_router
+router.include_router(findings_router)
