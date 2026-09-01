@@ -40,6 +40,7 @@ jobs:
           PRUEFPILOT_RETENTION_DAYS: "30"
           PRUEFPILOT_BACKUP_RESTORE_TESTED: "true"
           PRUEFPILOT_ROLLBACK_READY: "true"
+          PRUEFPILOT_TRUST_CHAIN_ENFORCED: "true"
         run: |
           python - <<'PY'
           from app.main import _readiness
@@ -49,6 +50,7 @@ jobs:
           for gate in (
               "durable_persistence", "durable_object_storage", "durable_queue", "durable_audit",
               "tenant_scoped_persistence", "backup_restore_evidence", "retention_deletion_configured",
+              "trust_chain_enforced",
           ):
               assert result["gates"][gate] is True, (gate, result)
           print(result)
