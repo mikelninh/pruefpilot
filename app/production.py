@@ -83,11 +83,13 @@ def production_readiness(
         "backup_restore_evidence": _bool_env("PRUEFPILOT_BACKUP_RESTORE_TESTED"),
         "rollback_runbook": _bool_env("PRUEFPILOT_ROLLBACK_READY"),
         "tenant_scoped_persistence": bool(tenant_scoped_persistence),
+        "trust_chain_enforced": _bool_env("PRUEFPILOT_TRUST_CHAIN_ENFORCED"),
     }
     required = [
         "identity_and_access", "tenant_principal_binding", "durable_persistence", "durable_object_storage",
         "durable_queue", "durable_audit", "storage_health", "strict_cors", "observability_configured",
         "retention_deletion_configured", "backup_restore_evidence", "rollback_runbook", "tenant_scoped_persistence",
+        "trust_chain_enforced",
     ]
     missing = [name for name in required if not gates[name]]
     return {
@@ -98,6 +100,6 @@ def production_readiness(
         "storage": storage_health,
         "truth_boundary": (
             "Engineering readiness does not prove reviewer accuracy, legal/administrative authority, "
-            "security acceptance or production integration reliability."
+            "security acceptance or production integration reliability. Trust-chain enforcement proves traceability, not real-world truth."
         ),
     }
