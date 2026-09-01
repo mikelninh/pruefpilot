@@ -36,8 +36,9 @@ def test_upload_rejects_non_pdf():
     assert response.status_code == 415
 
 
-def test_upload_processes_real_pdf_and_captures_source_trust():
-    response = client.post("/api/upload", files={"file": ("demo.pdf", blank_pdf(), "application/pdf")})
+def test_upload_processes_real_pdf_captures_source_trust_and_serves_original():
+    pdf = blank_pdf()
+    response = client.post("/api/upload", files={"file": ("demo.pdf", pdf, "application/pdf")})
     assert response.status_code == 200
     payload = response.json()
     assert payload["page_count"] == 1
@@ -49,6 +50,19 @@ def test_upload_processes_real_pdf_and_captures_source_trust():
     assert trust["integrity"]["sha256"] == payload["sha256"]
     assert trust["provenance"]["source_uri"].endswith(payload["document_id"])
     assert any(step["tool"] == "capture_source_provenance" for step in payload["trace"])
+
+    original = client.get(f'/api/documents/{payload["document_id"]}/original')
+    assert original.status_code == 200
+    assert original.content == pdf
+    assert original.headers["content-type"].startswith("application/pdf")
+    assert original.headers["x-document-sha256"] == payload["sha256"]
+    assert original.headers["x-source-integrity"] == "sha256-recomputed-on-read"
+    assert original.headers["cache-control"] == "private, no-store"
+
+
+def test_original_document_is_tenant_scoped_by_storage_key():
+    response = client.get("/api/documents/not-a-real-document/original")
+    assert response.status_code == 404
 
 
 def test_feedback_endpoint():
