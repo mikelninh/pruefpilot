@@ -1,0 +1,85 @@
+{
+  "schema_version": "pruefpilot-external-golden-path/v1",
+  "run_id": "REPLACE_ME",
+  "started_at": null,
+  "completed_at": null,
+  "case_source_class": "anonymised_real",
+  "case_source_class_allowed": ["real", "anonymised_real", "deidentified_real", "synthetic"],
+  "authorised_to_use": false,
+  "sensitive_data_review_complete": false,
+  "workflow": {
+    "name": "REPLACE_ME",
+    "question": "REPLACE_ME",
+    "case_id": null,
+    "baseline_manual_review_seconds": null,
+    "assisted_review_seconds": null
+  },
+  "sources": [
+    {
+      "document_id": null,
+      "display_name": "REDACTED_OR_SAFE_NAME",
+      "sha256": null,
+      "original_retrieval_verified": false,
+      "do_not_store_public_bytes": true
+    }
+  ],
+  "authorities": [
+    {
+      "authority_id": null,
+      "title": null,
+      "version": null,
+      "source_url": null,
+      "reviewer_opened_source": false
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": null,
+      "finding_text": null,
+      "reviewer_agrees": null,
+      "evidence": [
+        {
+          "document_id": null,
+          "page_or_field_locator": null,
+          "excerpt_hash": null,
+          "reviewer_verified_locator": false
+        }
+      ],
+      "authority_id": null,
+      "derivation_visible": false,
+      "reviewer_correction": null
+    }
+  ],
+  "decision_history": [
+    {
+      "decision_id": null,
+      "status": null,
+      "actor_role": null,
+      "actor_id_or_pseudonymous_id": null,
+      "at": null
+    }
+  ],
+  "metrics": {
+    "material_findings": null,
+    "exact_locator_coverage": null,
+    "authority_coverage": null,
+    "unsupported_material_findings": null,
+    "reviewer_detected_missed_issues": null,
+    "reviewer_corrections": null,
+    "source_opens": null
+  },
+  "fail_closed_test": {
+    "method": null,
+    "expected_gate_allow": false,
+    "observed_gate_allow": null,
+    "observed_reasons": []
+  },
+  "conclusion": {
+    "status": "UNKNOWN",
+    "allowed_statuses": ["SUPPORTED", "FAILED", "UNKNOWN"],
+    "statement": null,
+    "limitations": [
+      "One run does not establish general accuracy or production reliability."
+    ]
+  }
+}
