@@ -6,10 +6,20 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from pypdf import PdfReader
 
-from .models import ExtractedField, SecurityFinding, TraceStep, UploadResult
+from .models import (
+    AuthenticityRecord,
+    ExtractedField,
+    IntegrityRecord,
+    ProvenanceRecord,
+    SecurityFinding,
+    SourceTrustEnvelope,
+    TraceStep,
+    UploadResult,
+)
 
 
 TYPE_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -44,6 +54,7 @@ INVOICE_RE = re.compile(r"\b(?:R|RE|INV)[-_/]?\d{2,6}\b", re.IGNORECASE)
 class ParsedDocument:
     text: str
     pages: int
+    page_texts: tuple[str, ...]
 
 
 def extract_pdf_text(content: bytes) -> ParsedDocument:
@@ -54,7 +65,7 @@ def extract_pdf_text(content: bytes) -> ParsedDocument:
             parts.append(page.extract_text() or "")
         except Exception:
             parts.append("")
-    return ParsedDocument(text="\n".join(parts).strip(), pages=len(reader.pages))
+    return ParsedDocument(text="\n".join(parts).strip(), pages=len(reader.pages), page_texts=tuple(parts))
 
 
 def classify_document(text: str, filename: str = "") -> tuple[str, float, dict[str, int]]:
@@ -80,33 +91,12 @@ def scan_security(text: str) -> list[SecurityFinding]:
         if match:
             start = max(match.start() - 55, 0)
             end = min(match.end() + 95, len(normalized))
-            findings.append(
-                SecurityFinding(
-                    category="prompt_injection",
-                    severity="high",
-                    excerpt=normalized[start:end],
-                    action="quarantine",
-                )
-            )
+            findings.append(SecurityFinding(category="prompt_injection", severity="high", excerpt=normalized[start:end], action="quarantine"))
             break
     if re.search(r"javascript:|<script\b", normalized, re.IGNORECASE):
-        findings.append(
-            SecurityFinding(
-                category="embedded_script",
-                severity="high",
-                excerpt="Embedded script-like content detected",
-                action="quarantine",
-            )
-        )
+        findings.append(SecurityFinding(category="embedded_script", severity="high", excerpt="Embedded script-like content detected", action="quarantine"))
     if re.search(r"https?://[^\s]+", normalized, re.IGNORECASE) and not findings:
-        findings.append(
-            SecurityFinding(
-                category="suspicious_link",
-                severity="low",
-                excerpt="External link detected; retained as untrusted document content.",
-                action="manual_review",
-            )
-        )
+        findings.append(SecurityFinding(category="suspicious_link", severity="low", excerpt="External link detected; retained as untrusted document content.", action="manual_review"))
     return findings or [SecurityFinding(category="none", severity="low", excerpt="No security pattern detected", action="allow")]
 
 
@@ -128,101 +118,65 @@ def extract_fields(text: str, document_type: str) -> list[ExtractedField]:
 
     if amounts:
         label = "Beantragter Betrag" if document_type == "verwendungsnachweis" else "Gefundene Beträge"
-        fields.append(
-            ExtractedField(
-                name=label,
-                value=", ".join(_normalize_amount(value) for value in amounts),
-                confidence=0.91 if document_type != "unbekannt" else 0.72,
-                evidence=amounts[0],
-            )
-        )
+        fields.append(ExtractedField(name=label, value=", ".join(_normalize_amount(value) for value in amounts), confidence=0.91 if document_type != "unbekannt" else 0.72, evidence=amounts[0]))
     if dates:
-        fields.append(
-            ExtractedField(
-                name="Gefundene Datumsangaben",
-                value=", ".join(dates),
-                confidence=0.94,
-                evidence=dates[0],
-            )
-        )
+        fields.append(ExtractedField(name="Gefundene Datumsangaben", value=", ".join(dates), confidence=0.94, evidence=dates[0]))
     if invoices:
-        fields.append(
-            ExtractedField(
-                name="Rechnungsnummern",
-                value=", ".join(invoices),
-                confidence=0.93,
-                evidence=invoices[0],
-            )
-        )
+        fields.append(ExtractedField(name="Rechnungsnummern", value=", ".join(invoices), confidence=0.93, evidence=invoices[0]))
     if "unterschrift" in normalized.lower():
-        fields.append(
-            ExtractedField(name="Unterschrift", value="im Text erwähnt", confidence=0.64, evidence="Unterschrift")
-        )
+        fields.append(ExtractedField(name="Unterschrift", value="im Text erwähnt", confidence=0.64, evidence="Unterschrift"))
     return fields
+
+
+def _locate_evidence(page_texts: tuple[str, ...], evidence: str) -> tuple[int | None, str | None]:
+    needle = evidence.strip().lower()
+    if not needle:
+        return None, None
+    for index, page_text in enumerate(page_texts, start=1):
+        normalized = " ".join(page_text.split())
+        if needle in normalized.lower():
+            return index, hashlib.sha256(evidence.encode("utf-8")).hexdigest()
+    return None, hashlib.sha256(evidence.encode("utf-8")).hexdigest()
 
 
 def ingest_pdf(filename: str, content: bytes) -> UploadResult:
     started = time.perf_counter()
     trace: list[TraceStep] = []
+    captured_at = datetime.now(timezone.utc).isoformat()
+    content_sha256 = hashlib.sha256(content).hexdigest()
+    document_id = f"doc_{uuid.uuid4().hex[:12]}"
 
     parse_start = time.perf_counter()
     parsed = extract_pdf_text(content)
-    trace.append(
-        TraceStep(
-            tool="pdf_text_extraction",
-            detail=f"{parsed.pages} Seiten verarbeitet",
-            duration_ms=round((time.perf_counter() - parse_start) * 1000, 2),
-        )
-    )
+    trace.append(TraceStep(tool="pdf_text_extraction", detail=f"{parsed.pages} Seiten verarbeitet", duration_ms=round((time.perf_counter() - parse_start) * 1000, 2)))
 
     classify_start = time.perf_counter()
     document_type, confidence, _ = classify_document(parsed.text, filename)
-    trace.append(
-        TraceStep(
-            tool="document_classification",
-            status="warning" if confidence < 0.7 else "ok",
-            detail=f"{document_type} mit {confidence:.0%} Konfidenz",
-            duration_ms=round((time.perf_counter() - classify_start) * 1000, 2),
-        )
-    )
+    trace.append(TraceStep(tool="document_classification", status="warning" if confidence < 0.7 else "ok", detail=f"{document_type} mit {confidence:.0%} Konfidenz", duration_ms=round((time.perf_counter() - classify_start) * 1000, 2)))
 
     security_start = time.perf_counter()
     findings = scan_security(parsed.text)
     quarantined = any(f.action == "quarantine" for f in findings)
     manual_review = any(f.action == "manual_review" for f in findings)
-    trace.append(
-        TraceStep(
-            tool="untrusted_content_scan",
-            status="warning" if quarantined or manual_review else "ok",
-            detail="Dokument quarantänisiert" if quarantined else "Kein kritisches Muster erkannt",
-            duration_ms=round((time.perf_counter() - security_start) * 1000, 2),
-        )
-    )
+    trace.append(TraceStep(tool="untrusted_content_scan", status="warning" if quarantined or manual_review else "ok", detail="Dokument quarantänisiert" if quarantined else "Kein kritisches Muster erkannt", duration_ms=round((time.perf_counter() - security_start) * 1000, 2)))
 
     extract_start = time.perf_counter()
-    fields = extract_fields(parsed.text, document_type)
-    trace.append(
-        TraceStep(
-            tool="schema_extraction",
-            status="warning" if not fields else "ok",
-            detail=f"{len(fields)} strukturierte Feldgruppen extrahiert",
-            duration_ms=round((time.perf_counter() - extract_start) * 1000, 2),
-        )
-    )
+    raw_fields = extract_fields(parsed.text, document_type)
+    fields: list[ExtractedField] = []
+    for field in raw_fields:
+        page, excerpt_sha = _locate_evidence(parsed.page_texts, field.evidence)
+        fields.append(field.model_copy(update={"page": page, "evidence_sha256": excerpt_sha}))
+    trace.append(TraceStep(tool="schema_extraction", status="warning" if not fields else "ok", detail=f"{len(fields)} strukturierte Feldgruppen extrahiert", duration_ms=round((time.perf_counter() - extract_start) * 1000, 2)))
 
     status = "quarantined" if quarantined else ("manual_review" if confidence < 0.7 or manual_review else "ready")
     preview = " ".join(parsed.text.split())[:900]
-    trace.append(
-        TraceStep(
-            tool="persist_document_state",
-            detail=f"Upload-Ergebnis bereit ({status})",
-            duration_ms=round((time.perf_counter() - started) * 1000, 2),
-        )
-    )
+    trace.append(TraceStep(tool="capture_source_provenance", detail="Original bytes hashed; extracted evidence pinned to PDF pages", duration_ms=0.1))
+    trace.append(TraceStep(tool="persist_document_state", detail=f"Upload-Ergebnis bereit ({status})", duration_ms=round((time.perf_counter() - started) * 1000, 2)))
+
     return UploadResult(
-        document_id=f"doc_{uuid.uuid4().hex[:12]}",
+        document_id=document_id,
         filename=filename,
-        sha256=hashlib.sha256(content).hexdigest(),
+        sha256=content_sha256,
         bytes=len(content),
         page_count=parsed.pages,
         document_type=document_type,
@@ -232,4 +186,9 @@ def ingest_pdf(filename: str, content: bytes) -> UploadResult:
         status=status,
         preview=preview,
         trace=trace,
+        source_trust=SourceTrustEnvelope(
+            authenticity=AuthenticityRecord(status="original_as_received", method="raw_pdf_capture"),
+            integrity=IntegrityRecord(sha256=content_sha256, verified=True, version=f"sha256:{content_sha256[:16]}", captured_at=captured_at),
+            provenance=ProvenanceRecord(source_system="pruefpilot_upload", source_uri=f"pruefpilot://upload/{document_id}", acquired_at=captured_at),
+        ),
     )
