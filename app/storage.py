@@ -67,6 +67,18 @@ class SQLiteStore:
                   response_json TEXT, created_at TEXT NOT NULL, completed_at TEXT,
                   PRIMARY KEY (tenant_id, operation, idempotency_key)
                 );
+                CREATE TABLE IF NOT EXISTS findings (
+                  tenant_id TEXT NOT NULL, finding_id TEXT NOT NULL, case_id TEXT NOT NULL,
+                  document_id TEXT NOT NULL, field_name TEXT NOT NULL, authority_id TEXT NOT NULL,
+                  payload_json TEXT NOT NULL, created_at TEXT NOT NULL,
+                  PRIMARY KEY (tenant_id, finding_id)
+                );
+                CREATE TABLE IF NOT EXISTS finding_decisions (
+                  tenant_id TEXT NOT NULL, decision_id TEXT NOT NULL, finding_id TEXT NOT NULL,
+                  status TEXT NOT NULL, actor_id TEXT NOT NULL, note TEXT NOT NULL,
+                  chain_sha256 TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL,
+                  PRIMARY KEY (tenant_id, decision_id)
+                );
                 """
             )
             self._ensure_column(conn, "uploads", "tenant_id", "tenant_id TEXT NOT NULL DEFAULT 'demo'")
@@ -75,6 +87,8 @@ class SQLiteStore:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_uploads_tenant_case ON uploads (tenant_id, case_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_tenant_case ON reviewer_feedback (tenant_id, case_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_benchmark_tenant ON benchmark_runs (tenant_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_findings_tenant_case ON findings (tenant_id, case_id, created_at)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_finding_decisions_tenant_finding ON finding_decisions (tenant_id, finding_id, created_at)")
 
     def health(self) -> dict[str, Any]:
         try:
@@ -108,14 +122,65 @@ class SQLiteStore:
                 )
 
     def get_upload(self, document_id: str, *, tenant_id: str = "demo") -> dict[str, Any] | None:
+        record = self.get_upload_record(document_id, tenant_id=tenant_id)
+        return record["payload"] if record else None
+
+    def get_upload_record(self, document_id: str, *, tenant_id: str = "demo") -> dict[str, Any] | None:
         with self._connect() as conn:
-            row = conn.execute("SELECT payload_json FROM uploads WHERE tenant_id=? AND document_id=?", (tenant_id, document_id)).fetchone()
-        return json.loads(row[0]) if row else None
+            row = conn.execute(
+                "SELECT case_id, payload_json FROM uploads WHERE tenant_id=? AND document_id=?",
+                (tenant_id, document_id),
+            ).fetchone()
+        return {"case_id": row[0], "payload": json.loads(row[1])} if row else None
 
     def get_blob(self, document_id: str, *, tenant_id: str = "demo") -> bytes | None:
         with self._connect() as conn:
             row = conn.execute("SELECT content FROM document_blobs WHERE tenant_id=? AND document_id=?", (tenant_id, document_id)).fetchone()
         return bytes(row[0]) if row else None
+
+    def save_finding(self, payload: dict[str, Any], *, tenant_id: str = "demo") -> None:
+        now = payload.get("created_at") or datetime.now(timezone.utc).isoformat()
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                """INSERT INTO findings
+                (tenant_id, finding_id, case_id, document_id, field_name, authority_id, payload_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    tenant_id, payload["finding_id"], payload["case_id"], payload["document_id"],
+                    payload["field_name"], payload["authority_id"], json.dumps(payload, ensure_ascii=False), now,
+                ),
+            )
+
+    def get_finding(self, finding_id: str, *, tenant_id: str = "demo") -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT payload_json FROM findings WHERE tenant_id=? AND finding_id=?",
+                (tenant_id, finding_id),
+            ).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def append_finding_decision(self, payload: dict[str, Any], *, tenant_id: str = "demo") -> None:
+        now = payload.get("created_at") or datetime.now(timezone.utc).isoformat()
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                """INSERT INTO finding_decisions
+                (tenant_id, decision_id, finding_id, status, actor_id, note, chain_sha256, payload_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    tenant_id, payload["decision_id"], payload["finding_id"], payload["status"],
+                    payload["actor_id"], payload.get("note", ""), payload["chain_sha256"],
+                    json.dumps(payload, ensure_ascii=False), now,
+                ),
+            )
+
+    def list_finding_decisions(self, finding_id: str, *, tenant_id: str = "demo") -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT payload_json FROM finding_decisions
+                WHERE tenant_id=? AND finding_id=? ORDER BY created_at ASC, decision_id ASC""",
+                (tenant_id, finding_id),
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
 
     def save_feedback(self, payload: dict[str, Any], *, tenant_id: str = "demo") -> tuple[str, dict[str, Any]]:
         feedback_id = f"fb_{uuid.uuid4().hex[:12]}"
@@ -148,7 +213,7 @@ class SQLiteStore:
         with self._lock, self._connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO benchmark_runs (run_id, tenant_id, payload_json, created_at) VALUES (?, ?, ?, ?)",
-                (tenant_id, run_id, json.dumps(payload, ensure_ascii=False), now),
+                (run_id, tenant_id, json.dumps(payload, ensure_ascii=False), now),
             )
 
     def reserve_idempotency(self, *, tenant_id: str, operation: str, key: str) -> dict[str, Any]:
@@ -179,7 +244,10 @@ class SQLiteStore:
     def delete_tenant(self, tenant_id: str) -> dict[str, int]:
         deleted: dict[str, int] = {}
         with self._lock, self._connect() as conn:
-            for table in ("document_blobs", "reviewer_feedback", "benchmark_runs", "idempotency_keys", "uploads"):
+            for table in (
+                "finding_decisions", "findings", "document_blobs", "reviewer_feedback",
+                "benchmark_runs", "idempotency_keys", "uploads",
+            ):
                 cur = conn.execute(f"DELETE FROM {table} WHERE tenant_id=?", (tenant_id,))
                 deleted[table] = cur.rowcount
         return deleted
