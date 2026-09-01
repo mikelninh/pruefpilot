@@ -36,13 +36,19 @@ def test_upload_rejects_non_pdf():
     assert response.status_code == 415
 
 
-def test_upload_processes_real_pdf():
+def test_upload_processes_real_pdf_and_captures_source_trust():
     response = client.post("/api/upload", files={"file": ("demo.pdf", blank_pdf(), "application/pdf")})
     assert response.status_code == 200
     payload = response.json()
     assert payload["page_count"] == 1
-    assert payload["sha256"]
+    assert len(payload["sha256"]) == 64
     assert payload["status"] in {"ready", "manual_review"}
+    trust = payload["source_trust"]
+    assert trust["authenticity"]["status"] == "original_as_received"
+    assert trust["integrity"]["verified"] is True
+    assert trust["integrity"]["sha256"] == payload["sha256"]
+    assert trust["provenance"]["source_uri"].endswith(payload["document_id"])
+    assert any(step["tool"] == "capture_source_provenance" for step in payload["trace"])
 
 
 def test_feedback_endpoint():
