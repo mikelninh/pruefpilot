@@ -19,6 +19,7 @@ def configured_env(monkeypatch):
     monkeypatch.setenv("PRUEFPILOT_RETENTION_DAYS", "30")
     monkeypatch.setenv("PRUEFPILOT_BACKUP_RESTORE_TESTED", "true")
     monkeypatch.setenv("PRUEFPILOT_ROLLBACK_READY", "true")
+    monkeypatch.setenv("PRUEFPILOT_TRUST_CHAIN_ENFORCED", "true")
 
 
 def test_local_sqlite_does_not_masquerade_as_production_durable(monkeypatch):
@@ -47,6 +48,19 @@ def test_readiness_fails_closed_on_wildcard_cors(monkeypatch):
     assert result["gates"]["strict_cors"] is False
 
 
+def test_readiness_fails_closed_when_trust_chain_is_not_enforced(monkeypatch):
+    configured_env(monkeypatch)
+    monkeypatch.delenv("PRUEFPILOT_TRUST_CHAIN_ENFORCED")
+    result = production_readiness(
+        app_env="production", store_mode="postgres-durable", allowed_origins=("https://review.example",),
+        tenant_scoped_persistence=True, object_store_durable=True,
+        storage_health={"ok": True, "queue_durable": True, "audit_durable": True},
+    )
+    assert result["ready"] is False
+    assert result["gates"]["trust_chain_enforced"] is False
+    assert "trust_chain_enforced" in result["missing"]
+
+
 def test_tenant_scoped_feedback_never_leaks_between_tenants(tmp_path: Path):
     store = SQLiteStore(str(tmp_path / "pilot.db"))
     base = {"case_id": "CASE-1", "document_id": "DOC-1", "field_name": "amount", "previous_value": "10", "corrected_value": "11", "note": "reviewed"}
@@ -71,5 +85,6 @@ def test_production_can_only_be_engineering_ready_when_every_gate_is_explicit(mo
     )
     assert result["ready"] is True
     assert result["stage"] == "ENGINEERING_PRODUCTION_READY"
+    assert result["gates"]["trust_chain_enforced"] is True
     assert result["missing"] == []
-    assert "does not prove" in result["truth_boundary"]
+    assert "traceability" in result["truth_boundary"]
