@@ -1,16 +1,16 @@
 # Harness handoff
 
 ## Status
-Ready for independent verification.
+Verified and accepted for merge.
 
 ## Current step
-Run `python scripts/harness_check.py` plus the existing PrüfPilot CI.
+Merge PR #12. The harness workflow and existing PrüfPilot CI both passed on the implementation commit.
 
 ## Evidence
+- Harness workflow `33744428349`: success.
+- PrüfPilot CI workflow `33744428370`: success.
 - `AGENTS.md` maps authoritative product, runtime, eval and deployment sources.
-- `.harness/project.json` defines sensors, action classes and bounded retries.
-- `scripts/harness_check.py` rejects malformed task state and unapproved A3/A4 actions in receipts.
-- `.github/workflows/harness.yml` makes the minimum contract continuous.
+- Acceptance receipt: `.harness/receipts/harness-v0.1-adoption.json`.
 
 ## Decisions
 - Keep existing pytest/eval/readiness gates authoritative.
@@ -19,10 +19,10 @@ Run `python scripts/harness_check.py` plus the existing PrüfPilot CI.
 - Do not let a demo or environment flag self-promote to production evidence.
 
 ## Failures / uncertainties
-CI has not yet produced evidence for this branch.
+None observed in the harness or existing PrüfPilot CI for this change.
 
 ## Open risks
-Harness v0.1 validates process and state invariants; it does not replace document-domain evals or production infrastructure evidence.
+Harness v0.1 validates process/state invariants; it does not replace document-domain evals or production infrastructure evidence.
 
 ## Next owner
-Verifier — run CI, inspect failures, and convert any recurring failure into a fixture, validator, rule or policy gate.
+Operator — merge the verified PR, then use a fresh task contract for the next substantial PrüfPilot change.
