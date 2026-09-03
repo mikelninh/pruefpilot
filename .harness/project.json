@@ -1,0 +1,39 @@
+{
+  "schema": "mikel-harness-project-v0.1",
+  "project": {
+    "name": "PrüfPilot",
+    "repository": "mikelninh/pruefpilot",
+    "purpose": "Evidence-backed Document AI case engine for public-sector review workflows."
+  },
+  "sources_of_truth": [
+    {"area": "product", "paths": ["README.md"]},
+    {"area": "runtime", "paths": ["app/"]},
+    {"area": "architecture", "paths": ["architecture/", "docs/"]},
+    {"area": "verification", "paths": ["tests/", "evals/", ".github/workflows/ci.yml"]},
+    {"area": "frontend", "paths": ["frontend/", "proof/"]},
+    {"area": "deployment", "paths": ["deployments/", "Dockerfile", "pyproject.toml"]},
+    {"area": "work_state", "paths": [".harness/"]}
+  ],
+  "roles": ["chief", "scout", "builder", "verifier", "operator"],
+  "commands": {
+    "harness_check": ["python scripts/harness_check.py"],
+    "quick_verification": ["pytest -q", "python evals/run_evals.py"],
+    "full_ci_reference": [".github/workflows/ci.yml"]
+  },
+  "sensors": {
+    "documents": ["source provenance", "formalities", "completeness", "contradictions"],
+    "code": ["pytest", "ruff/CI"],
+    "evaluation": ["gold cases", "eval metrics"],
+    "production": ["durable persistence", "backup/restore", "retention", "trust-chain readiness gates"]
+  },
+  "action_policy": {
+    "A0": {"meaning": "observe", "approval_required": false},
+    "A1": {"meaning": "local_reversible", "approval_required": false},
+    "A2": {"meaning": "shared_reversible", "approval_required": false},
+    "A3": {"meaning": "consequential", "approval_required": true},
+    "A4": {"meaning": "high_impact", "approval_required": true}
+  },
+  "retry_policy": {"max_retries": 3, "escalate_on_same_failure": 2},
+  "receipt_dir": ".harness/receipts",
+  "failure_upgrade_required": true
+}

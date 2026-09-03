@@ -1,0 +1,26 @@
+{
+  "schema": "mikel-harness-task-v0.1",
+  "task_id": "harness-v0.1-adoption",
+  "status": "ready_for_review",
+  "goal": "Adopt Harness v0.1 around PrüfPilot's existing document provenance, eval and production-readiness gates.",
+  "sources": ["README.md", "pyproject.toml", ".github/workflows/ci.yml", "evals/"],
+  "outputs": ["AGENTS.md", ".harness/project.json", ".harness/HANDOFF.md", "scripts/harness_check.py", ".github/workflows/harness.yml"],
+  "constraints": ["Do not change document-review behaviour.", "Do not weaken provenance or readiness gates.", "Do not introduce external side effects."],
+  "done_when": ["Harness structure is present.", "Mechanical harness check passes.", "CI runs the harness check on pull requests and main."],
+  "forbidden": ["Production deployment", "Sensitive document access", "External sends", "Readiness-claim weakening"],
+  "risk_class": "A2",
+  "approval_required": false,
+  "max_retries": 3,
+  "current_step": "run_ci",
+  "evidence": [
+    {"kind": "file", "path": "AGENTS.md", "status": "present"},
+    {"kind": "file", "path": ".harness/project.json", "status": "present"},
+    {"kind": "file", "path": "scripts/harness_check.py", "status": "present"},
+    {"kind": "file", "path": ".github/workflows/harness.yml", "status": "present"}
+  ],
+  "failures": [],
+  "uncertainties": ["CI result is pending until the branch workflow runs."],
+  "next_owner": "verifier",
+  "next_step": "Run the harness gate plus existing pytest/evals CI; reject any regression in provenance or readiness boundaries.",
+  "receipt": null
+}
