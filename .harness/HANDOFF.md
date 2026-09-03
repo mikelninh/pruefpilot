@@ -1,28 +1,31 @@
-# Harness handoff
+# Reviewer-quality study handoff
 
 ## Status
-Verified and accepted for merge.
+A2 Scout → Builder → Verifier stage is complete and verified. The reviewer pack is ready for the next human gate.
 
 ## Current step
-Merge PR #12. The harness workflow and existing PrüfPilot CI both passed on the implementation commit.
+Choose a qualified reviewer and explicitly approve any external handoff. No external send has been performed.
 
 ## Evidence
-- Harness workflow `33744428349`: success.
-- PrüfPilot CI workflow `33744428370`: success.
-- `AGENTS.md` maps authoritative product, runtime, eval and deployment sources.
-- Acceptance receipt: `.harness/receipts/harness-v0.1-adoption.json`.
+- Mission Control approval: `mikelninh/council#21`.
+- Target-repo runner trace: `mikelninh/pruefpilot#14`.
+- Reviewer pack: `proof/reviewer-study/`.
+- Deterministic pack validator: `scripts/validate_reviewer_study.py`.
+- Regression coverage: `tests/test_reviewer_study.py`.
+- CI run `33771942521`: success — pytest, explicit reviewer-study validation, deterministic evals and fail-closed engineering readiness all passed.
+- Harness run `33771942459`: success.
+- Build-stage receipt: `.harness/receipts/reviewer-quality-study-pack.json`.
 
 ## Decisions
-- Keep existing pytest/eval/readiness gates authoritative.
-- Use source provenance and deterministic checks rather than remembered document state.
-- Keep Builder and Verifier separate for consequential review logic.
-- Do not let a demo or environment flag self-promote to production evidence.
-
-## Failures / uncertainties
-None observed in the harness or existing PrüfPilot CI for this change.
+- Reuse the existing 12-case synthetic benchmark and retrieval fixtures instead of inventing a disconnected evidence set.
+- Add the missing human-quality layer: correctness, evidence traceability, uncertainty honesty, next-action usefulness and handoff quality.
+- Preserve every correction, missed issue and unsupported finding; do not average critical failures away.
+- Keep the study synthetic and narrow: it does not establish general accuracy, legal correctness, production reliability or real-world benefit.
 
 ## Open risks
-Harness v0.1 validates process/state invariants; it does not replace document-domain evals or production infrastructure evidence.
+- No qualified reviewer judgement exists yet; that is the intended next evidence gate.
+- Sending the pack externally is outside the completed A2 runner stage and requires Michael/operator approval.
+- Real-world performance remains unknown until a governed non-synthetic evaluation is completed.
 
 ## Next owner
-Operator — merge the verified PR, then use a fresh task contract for the next substantial PrüfPilot change.
+Michael / Operator — choose a qualified reviewer and approve the external handoff if desired. The agent runner must stop here.

@@ -1,0 +1,31 @@
+{
+  "schema": "mikel-harness-receipt-v0.1",
+  "task_id": "reviewer-quality-study",
+  "verdict": "accepted",
+  "context_sources": [
+    "mikelninh/council#21",
+    "data/benchmark_cases.json",
+    "evals/eval_cases.json",
+    "proof/EXTERNAL_GOLDEN_PATH_1.md",
+    "AGENTS.md"
+  ],
+  "tools_used": ["GitHub", "GitHub Actions", "PruefPilot deterministic validator"],
+  "verification": {
+    "implementation_branch": "mission-21-reviewer-study",
+    "implementation_pr": 16,
+    "ci": {"run_id": 33771942521, "conclusion": "success", "checks": ["pytest", "reviewer-study validator", "deterministic evals", "fail-closed engineering readiness"]},
+    "harness": {"run_id": 33771942459, "conclusion": "success"},
+    "claim_boundary": "Synthetic reviewer-study pack verified; no qualified reviewer outcome or real-world performance claim exists yet."
+  },
+  "human_corrections": 0,
+  "retries": 0,
+  "failure_upgrades": ["Exact source anchors are validated so transliteration or citation drift fails before reviewer handoff.", "Reviewer-study validation is an explicit CI gate rather than only an indirect unit-test dependency."],
+  "external_actions": [
+    {"kind": "branch", "target": "mission-21-reviewer-study", "risk_class": "A2", "approved": true},
+    {"kind": "pull_request", "target": "mikelninh/pruefpilot#16", "risk_class": "A2", "approved": true}
+  ],
+  "accepted_artifact": "proof/reviewer-study/",
+  "rollback_point": "e4e14597cb41d75cb058df737f58aeb958306d6a",
+  "next_owner": "operator",
+  "next_step": "Choose a qualified reviewer and explicitly approve any external handoff."
+}
