@@ -3,24 +3,20 @@
   "project": "PrüfPilot",
   "north_star": "Turn document review into a fast, inspectable path from evidence to the smallest useful next action while keeping consequential authority outside the model.",
   "achieved": [
-    {"title": "End-to-end document intake, extraction, versioned rules and evidence states", "evidence": ["README.md", "app/"]},
-    {"title": "Human approval boundary, prompt-injection detection and bounded agent workflow", "evidence": ["README.md", "tests/"]},
-    {"title": "Tenant-scoped Postgres production shape and idempotent uploads", "evidence": ["README.md", ".github/workflows/"]}
+    {"title": "End-to-end document intake, extraction, versioned rules and evidence states", "label": "Document AI", "evidence": ["README.md", "app/"]},
+    {"title": "Human approval boundary, prompt-injection detection and bounded agent workflow", "label": "Approval + safety", "evidence": ["README.md", "tests/"]},
+    {"title": "Tenant-scoped Postgres production shape and idempotent uploads", "label": "Production shape", "evidence": ["README.md", ".github/workflows/"]}
   ],
-  "current": {
-    "title": "Prove reviewer-quality performance on representative cases",
-    "status": "active",
-    "outcome": "Move from controlled-production engineering candidate to evidence that qualified reviewers can trust the findings, next actions and hand-offs on representative work."
-  },
+  "current": {"title": "Prove reviewer-quality performance on representative cases", "label": "Reviewer proof", "status": "active", "outcome": "Move from controlled-production engineering candidate to evidence that qualified reviewers can trust the findings, next actions and hand-offs on representative work."},
   "next": [
-    {"title": "Run a qualified-reviewer accuracy and correction study", "why": "The biggest remaining product claim is reviewer usefulness and accuracy on representative cases."},
-    {"title": "Exercise one real DMS/Fachverfahren-style integration path", "why": "The workflow should prove it can fit the target operating environment rather than remain a standalone demo."},
-    {"title": "Define and measure operating SLOs plus deployment security/privacy acceptance", "why": "Production readiness requires environment-specific evidence, not an engineering flag."}
+    {"title": "Run a qualified-reviewer accuracy and correction study", "label": "Reviewer study", "why": "The biggest remaining product claim is reviewer usefulness and accuracy on representative cases."},
+    {"title": "Exercise one real DMS/Fachverfahren-style integration path", "label": "DMS integration", "why": "The workflow should prove it can fit the target operating environment rather than remain a standalone demo."},
+    {"title": "Define and measure operating SLOs plus deployment security/privacy acceptance", "label": "SLO + security", "why": "Production readiness requires environment-specific evidence, not an engineering flag."}
   ],
   "later": [
-    "Earn bounded automation only for stable low-risk review classes.",
-    "Expand reusable domain packs while preserving the same evidence and authority contract.",
-    "Prove repeatable time savings across more than one administrative workflow."
+    {"title": "Earn bounded automation only for stable low-risk review classes.", "label": "Low-risk automation"},
+    {"title": "Expand reusable domain packs while preserving the same evidence and authority contract.", "label": "Domain packs"},
+    {"title": "Prove repeatable time savings across more than one administrative workflow.", "label": "Time savings"}
   ],
   "sources": ["README.md", "app/", "tests/", ".github/workflows/"],
   "updated_at": "2026-09-03"
