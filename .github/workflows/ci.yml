@@ -29,6 +29,8 @@ jobs:
       - run: pip install -e ".[dev,postgres]"
       - name: Run unit + Postgres operations + backup/restore tests
         run: pytest -q
+      - name: Validate reviewer-quality study contract
+        run: python scripts/validate_reviewer_study.py
       - run: python evals/run_evals.py
       - name: Prove fail-closed production readiness can go green on durable infrastructure
         env:
