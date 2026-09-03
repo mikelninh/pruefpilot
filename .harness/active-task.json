@@ -1,0 +1,28 @@
+{
+  "schema": "mikel-harness-task-v0.1",
+  "task_id": "harness-v0.1-adoption",
+  "status": "completed",
+  "goal": "Adopt Harness v0.1 around PrüfPilot's existing document provenance, eval and production-readiness gates.",
+  "sources": ["README.md", "pyproject.toml", ".github/workflows/ci.yml", "evals/"],
+  "outputs": ["AGENTS.md", ".harness/project.json", ".harness/HANDOFF.md", "scripts/harness_check.py", ".github/workflows/harness.yml"],
+  "constraints": ["Do not change document-review behaviour.", "Do not weaken provenance or readiness gates.", "Do not introduce external side effects."],
+  "done_when": ["Harness structure is present.", "Mechanical harness check passes.", "CI runs the harness check on pull requests and main."],
+  "forbidden": ["Production deployment", "Sensitive document access", "External sends", "Readiness-claim weakening"],
+  "risk_class": "A2",
+  "approval_required": false,
+  "max_retries": 3,
+  "current_step": "verified",
+  "evidence": [
+    {"kind": "file", "path": "AGENTS.md", "status": "present"},
+    {"kind": "file", "path": ".harness/project.json", "status": "present"},
+    {"kind": "file", "path": "scripts/harness_check.py", "status": "present"},
+    {"kind": "file", "path": ".github/workflows/harness.yml", "status": "present"},
+    {"kind": "ci", "workflow": "harness-contract", "run_id": 33744428349, "status": "success"},
+    {"kind": "ci", "workflow": "CI", "run_id": 33744428370, "status": "success"}
+  ],
+  "failures": [],
+  "uncertainties": [],
+  "next_owner": "operator",
+  "next_step": "Merge PR #12; future substantial tasks start from a fresh explicit contract.",
+  "receipt": ".harness/receipts/harness-v0.1-adoption.json"
+}
