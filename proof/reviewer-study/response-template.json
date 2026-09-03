@@ -1,0 +1,28 @@
+{
+  "schema": "pruefpilot-reviewer-response-v1",
+  "study_id": "reviewer-quality-study-v1",
+  "reviewer": {
+    "reviewer_id": "",
+    "role_or_qualification": "",
+    "independence_note": "",
+    "reviewed_at": ""
+  },
+  "instructions": "Complete one case record per case in cases.json. Use only evidence actually available and do not infer missing facts.",
+  "case_reviews": [
+    {"case_id":"RQ-01","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""},
+    {"case_id":"RQ-02","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""},
+    {"case_id":"RQ-03","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""},
+    {"case_id":"RQ-04","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""},
+    {"case_id":"RQ-05","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""},
+    {"case_id":"RQ-06","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""},
+    {"case_id":"RQ-07","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""},
+    {"case_id":"RQ-08","agree_partial_disagree":"","scores":{"correctness":null,"evidence":null,"uncertainty":null,"next_action":null,"handoff":null},"critical_safety_failure":false,"material_corrections":[],"missed_issues":[],"unsupported_findings":[],"evidence_opened":[],"next_action_correction":"","review_time_seconds":null,"notes":""}
+  ],
+  "overall": {
+    "what_helped": [],
+    "what_slowed_review": [],
+    "highest_risk_failure": "",
+    "would_use_for_first_pass_review": "",
+    "conditions_before_real_use": []
+  }
+}

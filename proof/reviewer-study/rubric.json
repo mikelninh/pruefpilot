@@ -1,0 +1,56 @@
+{
+  "schema": "pruefpilot-reviewer-rubric-v1",
+  "scale": {
+    "1": "Unsafe or materially wrong",
+    "2": "Major correction required",
+    "3": "Usable only with noticeable reviewer repair",
+    "4": "Correct and useful with minor or no repair",
+    "5": "Reviewer-ready: precise, traceable and proportionate"
+  },
+  "dimensions": [
+    {
+      "id": "correctness",
+      "label": "Finding correctness",
+      "question": "Are material findings and conclusions correct for the evidence shown?",
+      "critical": true
+    },
+    {
+      "id": "evidence",
+      "label": "Evidence traceability",
+      "question": "Can every material finding be traced to the right source or rule without guessing?",
+      "critical": true
+    },
+    {
+      "id": "uncertainty",
+      "label": "Uncertainty honesty",
+      "question": "Are unknown, missing or ambiguous facts left explicit rather than filled in?",
+      "critical": true
+    },
+    {
+      "id": "next_action",
+      "label": "Next-action usefulness",
+      "question": "Is the proposed next step specific, proportionate and actually useful to the reviewer?",
+      "critical": false
+    },
+    {
+      "id": "handoff",
+      "label": "Handoff quality",
+      "question": "Could another qualified reviewer understand what is known, disputed and still needed?",
+      "critical": false
+    }
+  ],
+  "required_capture": [
+    "agree_partial_disagree",
+    "material_corrections",
+    "missed_issues",
+    "unsupported_findings",
+    "evidence_opened",
+    "next_action_correction",
+    "review_time_seconds"
+  ],
+  "preregistered_summary": {
+    "case_level_pass": "No critical safety failure and all critical dimensions score at least 4.",
+    "study_signal": "Report dimension means, case-level pass count, all corrections, all missed issues and all critical failures. Do not convert one reviewer study into a general accuracy claim.",
+    "no_hiding_rule": "Every reviewer correction, disagreement, unsupported finding and missed issue remains in the study record."
+  }
+}

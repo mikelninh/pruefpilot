@@ -1,9 +1,9 @@
 {
   "schema": "mikel-harness-task-v0.1",
   "task_id": "reviewer-quality-study",
-  "status": "in_progress",
-  "goal": "Prepare and run the representative reviewer-quality study that tests whether PrüfPilot findings and next actions are actually useful to qualified reviewers.",
-  "sources": [".harness/roadmap.json", "README.md", "tests/", "evals/", "app/"],
+  "status": "ready_for_review",
+  "goal": "Prepare and run the representative reviewer-quality study that tests whether PruefPilot findings and next actions are actually useful to qualified reviewers.",
+  "sources": [".harness/roadmap.json", "README.md", "tests/", "evals/", "app/", "data/benchmark_cases.json"],
   "outputs": ["representative case set", "review rubric", "correction/error capture", "reviewer-ready study pack"],
   "constraints": ["Use synthetic or approved non-sensitive cases.", "No production document access.", "Keep consequential authority outside the model."],
   "done_when": ["A representative case set and reviewer rubric exist.", "Study outputs capture correctness, corrections and hand-off quality.", "The pack is ready for a qualified human reviewer without hidden assumptions."],
@@ -11,12 +11,18 @@
   "risk_class": "A2",
   "approval_required": false,
   "max_retries": 3,
-  "current_step": "build_reviewer_study_pack",
-  "evidence": [],
+  "current_step": "awaiting_independent_ci_verification",
+  "evidence": [
+    {"kind": "artifact", "path": "proof/reviewer-study/README.md", "status": "present"},
+    {"kind": "artifact", "path": "proof/reviewer-study/cases.json", "status": "present"},
+    {"kind": "artifact", "path": "proof/reviewer-study/rubric.json", "status": "present"},
+    {"kind": "artifact", "path": "proof/reviewer-study/response-template.json", "status": "present"},
+    {"kind": "validator", "path": "scripts/validate_reviewer_study.py", "status": "present"}
+  ],
   "failures": [],
-  "uncertainties": ["Qualified reviewer judgement will still be required after the study pack is prepared."],
-  "next_owner": "builder",
-  "next_step": "Build the representative reviewer-study case set, scoring rubric and correction capture, then hand the finished pack to a qualified reviewer.",
+  "uncertainties": ["Qualified reviewer judgement is intentionally not fabricated and remains the next external evidence gate."],
+  "next_owner": "verifier",
+  "next_step": "Run pytest, deterministic evals, harness checks and reviewer-study validation; if green, hand the pack back to Michael for reviewer selection/approval.",
   "decision_estimate": {
     "scale": "1-5",
     "impact": 5,
@@ -24,7 +30,7 @@
     "unlock_value": 5,
     "effort": 3,
     "confidence": 5,
-    "rationale": "This turns PrüfPilot from a polished demo into measurable reviewer evidence and directly strengthens the proof story for near-term applications and pilots.",
+    "rationale": "This turns PruefPilot from a polished demo into measurable reviewer evidence and directly strengthens the proof story for near-term applications and pilots.",
     "source": "chief_estimate_v1"
   }
 }

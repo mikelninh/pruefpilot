@@ -1,28 +1,28 @@
-# Harness handoff
+# Reviewer-quality study handoff
 
 ## Status
-Verified and accepted for merge.
+Builder stage complete; independent verification pending.
 
 ## Current step
-Merge PR #12. The harness workflow and existing PrüfPilot CI both passed on the implementation commit.
+Run the repository test/eval/harness suite plus `python scripts/validate_reviewer_study.py` on branch `mission-21-reviewer-study`.
 
 ## Evidence
-- Harness workflow `33744428349`: success.
-- PrüfPilot CI workflow `33744428370`: success.
-- `AGENTS.md` maps authoritative product, runtime, eval and deployment sources.
-- Acceptance receipt: `.harness/receipts/harness-v0.1-adoption.json`.
+- Mission Control approval: `mikelninh/council#21`.
+- Target-repo runner trace: `mikelninh/pruefpilot#14`.
+- Reviewer pack: `proof/reviewer-study/`.
+- Deterministic pack validator: `scripts/validate_reviewer_study.py`.
+- Regression coverage: `tests/test_reviewer_study.py`.
 
 ## Decisions
-- Keep existing pytest/eval/readiness gates authoritative.
-- Use source provenance and deterministic checks rather than remembered document state.
-- Keep Builder and Verifier separate for consequential review logic.
-- Do not let a demo or environment flag self-promote to production evidence.
-
-## Failures / uncertainties
-None observed in the harness or existing PrüfPilot CI for this change.
+- Reuse the existing 12-case synthetic benchmark and retrieval fixtures instead of inventing a disconnected evidence set.
+- Add the missing human-quality layer: correctness, evidence traceability, uncertainty, next-action usefulness and handoff quality.
+- Preserve all corrections, missed issues and unsupported findings; do not average them away.
+- Do not claim general accuracy from one reviewer study.
 
 ## Open risks
-Harness v0.1 validates process/state invariants; it does not replace document-domain evals or production infrastructure evidence.
+- No qualified reviewer judgement exists yet; that is the intended next evidence gate.
+- Sending the pack externally is outside the approved A2 runner boundary and requires Michael/operator approval.
+- Real-world performance remains unknown until a governed non-synthetic evaluation is completed.
 
 ## Next owner
-Operator — merge the verified PR, then use a fresh task contract for the next substantial PrüfPilot change.
+Verifier. If CI is green, next owner becomes Michael/operator to choose a qualified reviewer and approve the external handoff.
