@@ -11,18 +11,21 @@
   "risk_class": "A2",
   "approval_required": false,
   "max_retries": 3,
-  "current_step": "awaiting_independent_ci_verification",
+  "current_step": "awaiting_qualified_reviewer_selection",
   "evidence": [
     {"kind": "artifact", "path": "proof/reviewer-study/README.md", "status": "present"},
     {"kind": "artifact", "path": "proof/reviewer-study/cases.json", "status": "present"},
     {"kind": "artifact", "path": "proof/reviewer-study/rubric.json", "status": "present"},
     {"kind": "artifact", "path": "proof/reviewer-study/response-template.json", "status": "present"},
-    {"kind": "validator", "path": "scripts/validate_reviewer_study.py", "status": "present"}
+    {"kind": "validator", "path": "scripts/validate_reviewer_study.py", "status": "present"},
+    {"kind": "ci", "workflow": "CI", "run_id": 33771942521, "status": "success", "checks": ["pytest", "reviewer-study validator", "deterministic evals", "fail-closed engineering readiness"]},
+    {"kind": "ci", "workflow": "harness-contract", "run_id": 33771942459, "status": "success"}
   ],
   "failures": [],
-  "uncertainties": ["Qualified reviewer judgement is intentionally not fabricated and remains the next external evidence gate."],
-  "next_owner": "verifier",
-  "next_step": "Run pytest, deterministic evals, harness checks and reviewer-study validation; if green, hand the pack back to Michael for reviewer selection/approval.",
+  "uncertainties": ["Qualified reviewer judgement is intentionally not fabricated and remains the next external evidence gate.", "Real-world usefulness remains unknown until governed human review evidence exists."],
+  "next_owner": "operator",
+  "next_step": "Choose a qualified reviewer and explicitly approve the external handoff of the synthetic reviewer pack; do not send anything automatically.",
+  "receipt": ".harness/receipts/reviewer-quality-study-pack.json",
   "decision_estimate": {
     "scale": "1-5",
     "impact": 5,
