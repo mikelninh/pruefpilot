@@ -16,5 +16,15 @@
   "failures": [],
   "uncertainties": ["Qualified reviewer judgement will still be required after the study pack is prepared."],
   "next_owner": "builder",
-  "next_step": "Build the representative reviewer-study case set, scoring rubric and correction capture, then hand the finished pack to a qualified reviewer."
+  "next_step": "Build the representative reviewer-study case set, scoring rubric and correction capture, then hand the finished pack to a qualified reviewer.",
+  "decision_estimate": {
+    "scale": "1-5",
+    "impact": 5,
+    "urgency": 5,
+    "unlock_value": 5,
+    "effort": 3,
+    "confidence": 5,
+    "rationale": "This turns PrüfPilot from a polished demo into measurable reviewer evidence and directly strengthens the proof story for near-term applications and pilots.",
+    "source": "chief_estimate_v1"
+  }
 }
